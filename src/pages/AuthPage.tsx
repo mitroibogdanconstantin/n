@@ -250,32 +250,24 @@ const AuthPage = () => {
 		setFilteredCities([]);
 	};
 
-	// Verifică dacă email-ul există deja în baza de date
+	// Verifică dacă email-ul există deja în baza de date - METODA CORECTATĂ
 	const checkEmailExists = async (email: string): Promise<boolean> => {
 		try {
 			setIsValidating(true);
 			
-			// Folosim funcția de sign-in cu un password invalid pentru a verifica dacă email-ul există
-			// Dacă primim eroarea "Invalid login credentials", înseamnă că email-ul există
-			// Dacă primim eroarea "User not found", înseamnă că email-ul nu există
-			const { error } = await supabase.auth.signInWithPassword({
-				email,
-				password: "check_email_exists_only",
-			});
+			// Verificăm direct în tabela auth.users dacă există email-ul
+			const { count, error } = await supabase
+				.from('profiles')
+				.select('*', { count: 'exact', head: true })
+				.eq('email', email.trim());
 			
 			if (error) {
-				// Verificăm mesajul de eroare
-				if (error.message.includes("Invalid login credentials")) {
-					// Email-ul există
-					return true;
-				}
-				// Alte erori înseamnă că email-ul probabil nu există
+				console.error("Error checking email existence:", error);
 				return false;
 			}
 			
-			// Dacă nu avem eroare, înseamnă că autentificarea a reușit (ceea ce e ciudat)
-			// Dar înseamnă că email-ul există
-			return true;
+			return count ? count > 0 : false;
+			
 		} catch (err) {
 			console.error("Error checking email:", err);
 			return false;
